@@ -26,7 +26,7 @@ import { BackendClient } from './backendClient';
 import { AkatsukiStatusBar } from './statusBar';
 import { GitWatcher } from './gitWatcher';
 import { ensureOnboarded, changePath } from './onboarding';
-import { testCommitMessage } from './messages';
+import { testCommitMessage, showThemedProgress } from './messages';
 import { showDashboard as showDashboardPanel, updateDashboardIfNeeded } from './dashboard';
 import { createLogger, getLogger } from './logger';
 import type { Profile, RepoStats, RankInfo } from './protocol';
@@ -40,6 +40,7 @@ let currentProfile: Profile | undefined;
 let currentStats: RepoStats | undefined;
 let currentRank: RankInfo | undefined;
 let lastRefreshTime = 0;
+let lastKnownCommits: number | undefined;
 const REFRESH_THROTTLE_MS = 1000;
 
 /**
@@ -139,6 +140,25 @@ async function handleGitRefresh(repoPath: string): Promise<void> {
 
     // Update status bar
     statusBar.update(stats, rank);
+
+    // Detect a newly-added commit (HEAD advanced with more commits) and fire the
+    // themed notification + record the event. Skipped on the first refresh so we
+    // don't notify on activation.
+    const isFirstRefresh = lastKnownCommits === undefined;
+    if (
+      !isFirstRefresh &&
+      stats.total_commits > (lastKnownCommits ?? 0) &&
+      currentProfile
+    ) {
+      const localClient = client;
+      const profilePath = currentProfile.path;
+      const sha = stats.last_seen_sha ?? undefined;
+      // Fire-and-forget so the refresh pipeline isn't blocked by the UI.
+      void showThemedProgress(localClient, profilePath, 'commit', repoPath, () =>
+        localClient.sendRequest('record_event', { repo_path: repoPath, op: 'commit', sha }),
+      ).catch((e) => getLogger().warn(`Themed commit notification failed: ${e}`));
+    }
+    lastKnownCommits = stats.total_commits;
 
     // Update dashboard if open
     updateDashboardIfNeeded(stats, rank);

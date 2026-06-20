@@ -72,6 +72,8 @@ async function runOnboardingFlow(client: BackendClient): Promise<Profile> {
         resolve(item.path as CharacterPath);
       }
     });
+    // If dismissed without a selection, default to Itachi (skip behaviour).
+    quickPick.onDidHide(() => resolve('itachi'));
     quickPick.show();
   });
 

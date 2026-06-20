@@ -1,0 +1,21 @@
+# Files excluded from the packaged .vsix (vsce).
+# Everything NOT listed here is included. We ship only the compiled extension,
+# the bundled backend binary, and static assets.
+
+# Source & build tooling — not shipped
+.vscode/**
+src/**
+scripts/**
+tsconfig.json
+node_modules/**
+
+# Dev-only files
+.gitignore
+**/*.map
+**/*.ts
+
+# Shipped (do NOT add to this list):
+#   out/**      compiled JavaScript
+#   bin/**      platform-specific akatsuki-backend binary
+#   media/**    icons and SVGs
+#   package.json, README.md, LICENSE

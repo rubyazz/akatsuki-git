@@ -8,6 +8,16 @@
     "vscode": "^1.85.0"
   },
   "categories": ["Other"],
+  "keywords": ["git", "gamification", "naruto", "anime", "productivity", "motivation"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rubyazz/akatsuki-git.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rubyazz/akatsuki-git/issues"
+  },
+  "homepage": "https://github.com/rubyazz/akatsuki-git#readme",
   "main": "./out/extension.js",
   "activationEvents": ["onStartupFinished"],
   "contributes": {

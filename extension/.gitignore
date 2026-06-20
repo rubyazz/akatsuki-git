@@ -11,6 +11,10 @@ node_modules/
 # Generated protocol file (mirrored from shared/ts/protocol.ts)
 src/protocol.ts
 
+# Packaged backend binaries (built at package time; do not commit)
+bin/*
+!bin/.gitkeep
+
 # OS files
 .DS_Store
 Thumbs.db

@@ -1,0 +1,38 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy (pedantic, incl. tests)
+        run: cargo clippy --workspace --tests -- -D warnings
+      - name: Tests
+        run: cargo test --workspace
+
+  extension:
+    name: Extension (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm install
+        working-directory: extension
+        run: npm install
+      - name: Compile (strict tsc)
+        working-directory: extension
+        run: npm run compile

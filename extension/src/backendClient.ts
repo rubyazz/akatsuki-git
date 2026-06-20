@@ -11,6 +11,7 @@
  */
 
 import * as cp from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as protocol from './protocol';
@@ -49,7 +50,10 @@ export class BackendClient implements vscode.Disposable {
   private isDisposed = false;
   private readonly logger: Logger;
 
-  constructor(private readonly config: vscode.WorkspaceConfiguration) {
+  constructor(
+    private readonly config: vscode.WorkspaceConfiguration,
+    private readonly extensionPath: string,
+  ) {
     this.logger = getLogger();
   }
 
@@ -213,14 +217,25 @@ export class BackendClient implements vscode.Disposable {
   }
 
   private resolveBackendPath(): string {
+    // Highest priority: explicit user override.
     const override = this.config.get<string>('backendPath');
     if (override) {
       return override;
     }
 
-    // In development: extension/out/ -> ../../backend/target/debug/akatsuki-backend
-    const devPath = path.resolve(__dirname, '../../backend/target/debug/akatsuki-backend');
-    return devPath;
+    // The backend executable name on the current platform.
+    const exeName = process.platform === 'win32' ? 'akatsuki-backend.exe' : 'akatsuki-backend';
+
+    // 1. Packaged binary bundled inside the installed extension
+    //    (`<extensionPath>/bin/akatsuki-backend`). Present in a packaged VSIX.
+    const bundled = path.join(this.extensionPath, 'bin', exeName);
+    if (fs.existsSync(bundled)) {
+      return bundled;
+    }
+
+    // 2. Development fallback: the extension runs from `extension/out/`, so the
+    //    cargo-built binary lives at `../../backend/target/debug/`.
+    return path.resolve(__dirname, '../../backend/target/debug', exeName);
   }
 
   private async performHandshake(): Promise<void> {

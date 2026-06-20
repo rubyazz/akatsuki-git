@@ -403,6 +403,96 @@ cd extension && npm run compile -- --watch
 cargo clean && rm -rf extension/node_modules extension/out
 ```
 
+## Packaging & Publishing
+
+Akatsuki Git ships a **platform-specific Rust binary** inside the VSIX. There is
+no universal build — each platform gets its own VSIX tagged with a target, and
+the Marketplace/Open VSX serve the correct one to each user automatically.
+
+### Supported platform targets
+
+| Target         | Runner (CI)   | Rust triple                  |
+|----------------|---------------|------------------------------|
+| `darwin-arm64` | `macos-14`    | `aarch64-apple-darwin`       |
+| `darwin-x64`   | `macos-13`    | `x86_64-apple-darwin`        |
+| `linux-x64`    | `ubuntu-22.04`| `x86_64-unknown-linux-gnu`   |
+| `win32-x64`    | `windows-latest` | `x86_64-pc-windows-msvc`  |
+
+> Linux ARM64 (`aarch64-unknown-linux-gnu`) requires cross-compilation tooling
+> and is intentionally omitted for now; add a matrix entry + `cross` if needed.
+
+### Build a VSIX locally
+
+```bash
+cd extension
+# Package for the CURRENT platform (release binary bundled into the VSIX):
+node scripts/package.mjs --target darwin-arm64      # use your host target
+
+# For another target (requires `rustup target add <triple>`):
+node scripts/package.mjs --target linux-x64
+```
+
+The script builds the backend for the target, copies it into `extension/bin/`,
+stages `README.md`/`LICENSE` from the repo root, runs `vsce package --target`,
+then cleans up. The output is `extension/akatsuki-git-<target>-<version>.vsix`.
+
+To inspect what a VSIX contains without building it:
+
+```bash
+cd extension && npx vsce ls
+```
+
+You should see `bin/akatsuki-backend`, `out/**`, `media/**`, `README.md`,
+`LICENSE`, and `package.json`.
+
+### Install a VSIX manually
+
+```bash
+code --install-extension extension/akatsuki-git-darwin-arm64-0.1.0.vsix
+```
+
+### Continuous integration
+
+`.github/workflows/build.yml` runs on every push/PR: `cargo fmt --check`,
+`cargo clippy --workspace --tests -- -D warnings`, `cargo test --workspace`, and
+`npm run compile` (strict tsc).
+
+### Releasing (publish to Marketplaces + GitHub Release)
+
+The release is **tag-driven**. Pushing a `v*` tag triggers
+`.github/workflows/release.yml`, which:
+
+1. Builds a VSIX on each platform runner (`build-vsix` matrix).
+2. Publishes every VSIX to the **VS Code Marketplace** (`vsce publish`) and
+   **Open VSX** (`ovsx publish`) (`publish` job).
+3. Creates a GitHub Release with all VSIXs attached and auto-generated notes.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+#### One-time publish prerequisites
+
+1. **Choose a `publisher`** in `extension/package.json` (currently `akatsuki`).
+   The publisher ID must exist on both marketplaces.
+2. **VS Code Marketplace** — create a publisher at
+   <https://marketplace.visualstudio.com/manage>, generate a Personal Access
+   Token from Azure DevOps (`Manage Publishing Tokens`), and add it as the
+   `VSCE_PAT` repository secret.
+3. **Open VSX** — create an Eclipse Access Token at <https://open-vsx.org> and
+   add it as the `OVSX_PAT` repository secret.
+4. **Verify metadata** before the first release: `repository`, `bugs`,
+   `homepage`, and `license` in `extension/package.json` (currently pointing at
+   `rubyazz/akatsuki-git`), and bump `version`.
+5. **(Optional) Add an icon**: add a 128×128+ PNG at `extension/media/icon.png`
+   and set `"icon": "media/icon.png"` in `package.json`. Without it the listing
+   uses a generic icon.
+
+If you only want to produce VSIXs for testing without publishing, run the
+workflow via `workflow_dispatch` (defaults to `dry_run: true`) or call
+`scripts/package.mjs` locally.
+
 ## Getting Help
 
 - Check the [Architecture](ARCHITECTURE.md) document for implementation details

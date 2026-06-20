@@ -68,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Create and spawn backend client
   const config = vscode.workspace.getConfiguration('akatsuki');
-  client = new BackendClient(config);
+  client = new BackendClient(config, context.extensionPath);
 
   try {
     await client.spawn();

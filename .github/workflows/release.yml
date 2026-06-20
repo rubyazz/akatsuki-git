@@ -1,0 +1,94 @@
+name: release
+
+# Build per-platform VSIXs, publish them to the VS Code Marketplace and Open VSX,
+# and attach them to a GitHub Release. Triggered by pushing a `v*` tag.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build VSIXs without publishing (no GH release either)'
+        required: false
+        default: 'true'
+
+jobs:
+  build-vsix:
+    name: VSIX ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each runner builds the backend natively for its own platform, which is
+        # faster and avoids cross-linker setup. `scripts/package.mjs` handles
+        # `rustup target add` (idempotent for the native triple).
+        include:
+          - os: macos-14
+            target: darwin-arm64
+          - os: macos-13
+            target: darwin-x64
+          - os: ubuntu-22.04
+            target: linux-x64
+          - os: windows-latest
+            target: win32-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm install
+        working-directory: extension
+        run: npm install
+      - name: Package VSIX
+        working-directory: extension
+        run: node scripts/package.mjs --target ${{ matrix.target }}
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: extension/*.vsix
+          if-no-files-found: error
+
+  publish:
+    name: Publish to Marketplaces + GitHub Release
+    needs: build-vsix
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Download all VSIXs
+        uses: actions/download-artifact@v4
+        with:
+          path: vsixs
+          pattern: vsix-*
+          merge-multiple: true
+      - name: List VSIXs
+        run: ls -la vsixs/
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          for f in vsixs/*.vsix; do
+            echo "Publishing $f to Marketplace..."
+            npx @vscode/vsce publish --package-path "$f" --pat "$VSCE_PAT" --no-git-tag-version
+          done
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          npm install -g ovsx
+          for f in vsixs/*.vsix; do
+            echo "Publishing $f to Open VSX..."
+            ovsx publish "$f" -p "$OVSX_PAT"
+          done
+      - name: Create GitHub Release with VSIX assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: vsixs/*.vsix

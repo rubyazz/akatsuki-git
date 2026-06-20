@@ -414,7 +414,7 @@ the Marketplace/Open VSX serve the correct one to each user automatically.
 | Target         | Runner (CI)   | Rust triple                  |
 |----------------|---------------|------------------------------|
 | `darwin-arm64` | `macos-14`    | `aarch64-apple-darwin`       |
-| `darwin-x64`   | `macos-13`    | `x86_64-apple-darwin`        |
+| `darwin-x64`   | `macos-15-intel` | `x86_64-apple-darwin`     |
 | `linux-x64`    | `ubuntu-22.04`| `x86_64-unknown-linux-gnu`   |
 | `win32-x64`    | `windows-latest` | `x86_64-pc-windows-msvc`  |
 

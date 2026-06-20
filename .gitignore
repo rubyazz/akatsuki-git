@@ -1,0 +1,22 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Node / VS Code extension
+node_modules/
+out/
+dist/
+*.vsix
+.vscode-test/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local SQLite artifacts
+*.db
+*.db-wal
+*.db-shm
+
+settings.local.json
+.claude/

@@ -1,0 +1,14 @@
+[package]
+name = "akatsuki-protocol"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Shared JSON-RPC protocol types for the Akatsuki Git backend and VS Code extension"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

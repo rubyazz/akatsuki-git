@@ -1,0 +1,70 @@
+{
+  "name": "akatsuki-git",
+  "displayName": "Akatsuki Git",
+  "publisher": "akatsuki",
+  "version": "0.1.0",
+  "description": "A Naruto-themed Git companion that gamifies your development workflow.",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "akatsuki.showDashboard",
+        "title": "Akatsuki: Show Dashboard"
+      },
+      {
+        "command": "akatsuki.refreshRank",
+        "title": "Akatsuki: Refresh Rank"
+      },
+      {
+        "command": "akatsuki.changePath",
+        "title": "Akatsuki: Change Character Path"
+      },
+      {
+        "command": "akatsuki.testCommitMessage",
+        "title": "Akatsuki: Preview Commit Message"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "akatsuki.showDashboard"
+        },
+        {
+          "command": "akatsuki.refreshRank"
+        },
+        {
+          "command": "akatsuki.changePath"
+        },
+        {
+          "command": "akatsuki.testCommitMessage"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Akatsuki Git",
+      "properties": {
+        "akatsuki.backendPath": {
+          "type": "string",
+          "description": "Override the path to the akatsuki-backend binary (for development)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "npm run copy-protocol && tsc -p .",
+    "watch": "npm run copy-protocol && tsc -p . --watch",
+    "copy-protocol": "node scripts/copy-protocol.mjs",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "typescript": "~5.4.0"
+  }
+}

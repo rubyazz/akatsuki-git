@@ -164,8 +164,12 @@ mod tests {
         let repo = Repository::init(repo_path).unwrap();
 
         // Create some commits
-        let sig =
-            Signature::new("Test User", "test@example.com", &Time::new(1234567890, 0)).unwrap();
+        let sig = Signature::new(
+            "Test User",
+            "test@example.com",
+            &Time::new(1_234_567_890, 0),
+        )
+        .unwrap();
 
         // Create an initial commit
         let tree_oid = {
@@ -218,8 +222,12 @@ mod tests {
         assert_eq!(count, 0);
 
         // Create another commit
-        let sig =
-            Signature::new("Test User", "test@example.com", &Time::new(1234567891, 0)).unwrap();
+        let sig = Signature::new(
+            "Test User",
+            "test@example.com",
+            &Time::new(1_234_567_891, 0),
+        )
+        .unwrap();
 
         let head = repo.head().unwrap();
         let parent_commit = repo.find_commit(head.target().unwrap()).unwrap();
@@ -255,8 +263,8 @@ mod tests {
         // This test requires git to be installed
         // If git is not available, the test will fail gracefully
         let count = count_commits_fallback(&repo_path_str);
-        if count.is_ok() {
-            assert_eq!(count.unwrap(), 1);
+        if let Ok(c) = count {
+            assert_eq!(c, 1);
         }
     }
 }

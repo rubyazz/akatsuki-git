@@ -43,9 +43,12 @@ impl Db {
     fn init_schema(&self) -> Result<(), BackendError> {
         let conn = self.conn.lock().unwrap();
 
-        // Set pragmas
-        conn.execute("PRAGMA journal_mode=WAL;", [])?;
-        conn.execute("PRAGMA busy_timeout=5000;", [])?;
+        // Set pragmas. `journal_mode=WAL` returns a row (the resulting mode), so
+        // it must go through `query_row` — rusqlite's `execute()` rejects calls
+        // that yield rows. `busy_timeout` is set via rusqlite's native API to
+        // avoid the SQL-pragma row-return ambiguity across SQLite versions.
+        conn.query_row("PRAGMA journal_mode=WAL;", [], |_| Ok(()))?;
+        conn.busy_timeout(std::time::Duration::from_secs(5))?;
 
         // Create tables
         conn.execute(
@@ -156,40 +159,44 @@ impl Db {
         }
     }
 
-    /// Update just the path field of the profile.
+    /// Update just the path field of the profile. Creates the singleton row with
+    /// a default name if it does not yet exist.
     pub fn set_path(&self, path: CharacterPath) -> Result<Profile, BackendError> {
         let conn = self.conn.lock().unwrap();
 
-        // First, try to get the existing profile
-        let existing = self.get_profile()?;
+        // Query the existing profile using the connection we already hold. Do NOT
+        // call `self.get_profile()` here — that method locks the same Mutex and
+        // `std::sync::Mutex` is not reentrant, so it would deadlock.
+        let existing: Option<(String, i64)> = conn
+            .query_row(
+                "SELECT name, created_at FROM profile WHERE id = 1;",
+                [],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .optional()?;
 
-        let (name, created_at) = if let Some(profile) = existing {
-            (profile.name, profile.created_at)
+        if let Some((name, created_at)) = existing {
+            conn.execute(
+                "UPDATE profile SET path = ?1 WHERE id = 1;",
+                params![path.key()],
+            )?;
+            Ok(Profile {
+                name,
+                path,
+                created_at,
+            })
         } else {
-            // Create with a default name if profile doesn't exist
             let now = chrono_timestamp_millis();
             conn.execute(
                 "INSERT INTO profile (id, name, path, created_at) VALUES (1, ?1, ?2, ?3);",
                 params!["Shinobi", path.key(), now],
             )?;
-            return Ok(Profile {
+            Ok(Profile {
                 name: "Shinobi".to_string(),
                 path,
                 created_at: now,
-            });
-        };
-
-        // Update the path
-        conn.execute(
-            "UPDATE profile SET path = ?1 WHERE id = 1;",
-            params![path.key()],
-        )?;
-
-        Ok(Profile {
-            name,
-            path,
-            created_at,
-        })
+            })
+        }
     }
 
     /// Get repository stats from cache.

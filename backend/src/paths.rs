@@ -27,7 +27,7 @@ pub fn message_templates(path: CharacterPath) -> MessageTemplates {
             // Merge conflict has its own fixed completion text without a suffix.
             completion.to_string()
         } else {
-            format!("{completion} {suffix}")
+            join_with_suffix(completion, suffix)
         };
 
         templates.insert(
@@ -40,6 +40,20 @@ pub fn message_templates(path: CharacterPath) -> MessageTemplates {
     }
 
     templates
+}
+
+/// Join a completion message with a path suffix, inserting a sentence
+/// separator. If the completion already ends in punctuation (`.` `!` `?` `…`)
+/// only a space is added; otherwise `. ` is inserted so that e.g.
+/// "Mission Report Recorded" + "Every growth requires sacrifice." becomes
+/// "Mission Report Recorded. Every growth requires sacrifice."
+fn join_with_suffix(completion: &str, suffix: &str) -> String {
+    let separator = if completion.ends_with(['.', '!', '?', '…']) {
+        " "
+    } else {
+        ". "
+    };
+    format!("{completion}{separator}{suffix}")
 }
 
 /// Get the default (unbranded) message text for an operation.

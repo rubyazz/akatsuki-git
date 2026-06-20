@@ -124,25 +124,22 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp)] // exact, deterministic values at rank boundaries
     fn test_progress_clamping() {
-        // Test progress at boundaries
-        let rank = rank_for(0);
-        assert_eq!(rank.progress, 0.0);
+        // Progress at each rank floor is exactly 0.0; at the max rank it
+        // clamps to 1.0.
+        assert_eq!(rank_for(0).progress, 0.0);
 
-        let rank = rank_for(24);
-        assert_eq!(rank.progress, 0.96); // (24-0)/(25-0) = 0.96
+        // (24 - 0) / (25 - 0)
+        assert!((rank_for(24).progress - 24.0 / 25.0).abs() < 1e-9);
 
-        let rank = rank_for(25);
-        assert_eq!(rank.progress, 0.0);
+        assert_eq!(rank_for(25).progress, 0.0);
 
-        let rank = rank_for(99);
-        assert_eq!(rank.progress, 0.9866666666666667); // (99-25)/(100-25) ≈ 0.9866
+        // (99 - 25) / (100 - 25)
+        assert!((rank_for(99).progress - (99.0 - 25.0) / (100.0 - 25.0)).abs() < 1e-9);
 
-        let rank = rank_for(5000);
-        assert_eq!(rank.progress, 1.0); // Max rank
-
-        let rank = rank_for(10000);
-        assert_eq!(rank.progress, 1.0); // Max rank
+        assert_eq!(rank_for(5000).progress, 1.0); // Max rank
+        assert_eq!(rank_for(10000).progress, 1.0); // Max rank
     }
 
     #[test]
